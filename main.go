@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -12,8 +13,11 @@ import (
 	"golang.org/x/text/transform"
 )
 
+var recommendRe = regexp.MustCompile(`<h2>[\s\S]*?</h2>`)
+var htmlTagRe = regexp.MustCompile("<[\\s\\S]*?>")
+
 func main() {
-	url := "https://www.chinanews.com.cn/"
+	url := "https://www.thepaper.cn/"
 
 	body, err := Fetch(url)
 	if err != nil {
@@ -22,7 +26,12 @@ func main() {
 		return
 	}
 
-	fmt.Println(string(body))
+	matches := recommendRe.FindAllSubmatch(body, -1)
+	for _, m := range matches {
+		c := htmlTagRe.ReplaceAllString(string(m[0]), "")
+
+		fmt.Println("fetch card news:", c)
+	}
 }
 
 func Fetch(url string) ([]byte, error) {

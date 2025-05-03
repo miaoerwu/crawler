@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/antchfx/htmlquery"
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/unicode"
@@ -19,21 +19,21 @@ func main() {
 
 	body, err := Fetch(url)
 	if err != nil {
-		fmt.Println("read content failed:", err)
+		fmt.Println("read body failed:", err)
 
 		return
 	}
 
-	doc, err := htmlquery.Parse(bytes.NewReader(body))
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
-		fmt.Println("htmlquery.Parse failed:", err)
+		fmt.Println("read content failed:", err)
 	}
 
-	nodes := htmlquery.Find(doc, `//div[@class='small_toplink__GmZhY']/a[@target='_blank']/h2`)
-	for _, n := range nodes {
+	doc.Find("div.small_toplink__GmZhY a[target=_blank] h2").Each(func(i int, s *goquery.Selection) {
+		title := s.Text()
 
-		fmt.Println("fetch card news:", n.FirstChild.Data)
-	}
+		fmt.Printf("Review %d: %s\n", i, title)
+	})
 }
 
 func Fetch(url string) ([]byte, error) {

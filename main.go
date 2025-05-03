@@ -2,19 +2,17 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 
+	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
-
-var recommendRe = regexp.MustCompile(`<h2>[\s\S]*?</h2>`)
-var htmlTagRe = regexp.MustCompile("<[\\s\\S]*?>")
 
 func main() {
 	url := "https://www.thepaper.cn/"
@@ -26,11 +24,15 @@ func main() {
 		return
 	}
 
-	matches := recommendRe.FindAllSubmatch(body, -1)
-	for _, m := range matches {
-		c := htmlTagRe.ReplaceAllString(string(m[0]), "")
+	doc, err := htmlquery.Parse(bytes.NewReader(body))
+	if err != nil {
+		fmt.Println("htmlquery.Parse failed:", err)
+	}
 
-		fmt.Println("fetch card news:", c)
+	nodes := htmlquery.Find(doc, `//div[@class='small_toplink__GmZhY']/a[@target='_blank']/h2`)
+	for _, n := range nodes {
+
+		fmt.Println("fetch card news:", n.FirstChild.Data)
 	}
 }
 

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -29,5 +31,12 @@ func main() {
 		return
 	}
 
-	fmt.Println("body:", string(body))
+	numsLinks := strings.Count(string(body), "<a")
+	fmt.Printf("homepage has: %d links!\n", numsLinks)
+
+	exist := strings.Contains(string(body), "黄金")
+	fmt.Printf("是否存在黄金:%v\n", exist)
+
+	exist = bytes.Contains(body, []byte("黄金"))
+	fmt.Printf("是否存在黄金:%v\n", exist)
 }

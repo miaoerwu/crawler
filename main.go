@@ -1,70 +1,51 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"fmt"
-	"io"
-	"net/http"
+	"time"
 
-	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
+	"github.com/chromedp/chromedp"
+	"github.com/miaoerwu/crawler/collect"
 )
 
 func main() {
-	url := "https://www.thepaper.cn/"
+	url := "https://book.douban.com/subject/1007305/"
 
-	body, err := Fetch(url)
+	fetch := collect.BrowserFetch{
+		Timeout: 2000 * time.Millisecond,
+	}
+	body, err := fetch.Get(url)
 	if err != nil {
 		fmt.Println("read body failed:", err)
 
 		return
 	}
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+	fmt.Println(string(body))
+
+	fmt.Println()
+	fmt.Println("------------------------------------------")
+	fmt.Println()
+
+	ctx, cancelFunc := chromedp.NewContext(context.Background())
+	defer cancelFunc()
+
+	ctx, cancelFunc = context.WithTimeout(ctx, 15*time.Second)
+	defer cancelFunc()
+
+	var example string
+	err = chromedp.Run(ctx,
+		chromedp.Navigate("https://pkg.go.dev/time"),
+		chromedp.WaitVisible("body > footer"),
+		chromedp.Click("#example-After", chromedp.NodeVisible),
+		chromedp.Value("#example-After textarea", &example),
+	)
 	if err != nil {
-		fmt.Println("read content failed:", err)
+		fmt.Println("read body failed:", err)
+
+		return
 	}
 
-	doc.Find("div.small_toplink__GmZhY a[target=_blank] h2").Each(func(i int, s *goquery.Selection) {
-		title := s.Text()
-
-		fmt.Printf("Review %d: %s\n", i, title)
-	})
-}
-
-func Fetch(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		panic(err)
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error status code: %v\n", resp.StatusCode)
-	}
-
-	bodyReader := bufio.NewReader(resp.Body)
-	e := DetermineEncoding(bodyReader)
-	utf8Reader := transform.NewReader(bodyReader, e.NewDecoder())
-
-	return io.ReadAll(utf8Reader)
-}
-
-func DetermineEncoding(r *bufio.Reader) encoding.Encoding {
-	peek, err := r.Peek(1024)
-	if err != nil {
-		fmt.Println("fetch err:", err)
-
-		return unicode.UTF8
-	}
-
-	e, _, _ := charset.DetermineEncoding(peek, "")
-
-	return e
+	fmt.Println(example)
 }

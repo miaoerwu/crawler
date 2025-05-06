@@ -6,14 +6,24 @@ import (
 	"time"
 
 	"github.com/chromedp/chromedp"
+
 	"github.com/miaoerwu/crawler/collect"
+	"github.com/miaoerwu/crawler/proxy"
 )
 
 func main() {
-	url := "https://book.douban.com/subject/1007305/"
+	urls := []string{"http://127.0.0.1:8888", "http://127.0.0.1:8889"}
+	p, err := proxy.NewRoundRobinSwitcher(urls...)
+	if err != nil {
+		fmt.Println("RoundRobinProxySwitcher failed")
 
+		return
+	}
+
+	url := "https://google.com"
 	fetch := collect.BrowserFetch{
 		Timeout: 2000 * time.Millisecond,
+		Proxy:   p,
 	}
 	body, err := fetch.Get(url)
 	if err != nil {

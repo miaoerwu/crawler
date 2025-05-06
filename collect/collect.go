@@ -11,6 +11,8 @@ import (
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
+
+	"github.com/miaoerwu/crawler/proxy"
 )
 
 type Fetcher interface {
@@ -42,11 +44,17 @@ func (BaseFetch) Get(url string) ([]byte, error) {
 
 type BrowserFetch struct {
 	Timeout time.Duration
+	Proxy   proxy.Func
 }
 
 func (b BrowserFetch) Get(url string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: b.Timeout,
+	}
+	if b.Proxy != nil {
+		transport := http.DefaultTransport.(*http.Transport)
+		transport.Proxy = b.Proxy
+		client.Transport = transport
 	}
 
 	req, err := http.NewRequest("GET", url, nil)

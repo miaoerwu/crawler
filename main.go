@@ -2,41 +2,46 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"time"
 
 	"github.com/chromedp/chromedp"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/miaoerwu/crawler/collect"
-	"github.com/miaoerwu/crawler/proxy"
+	"github.com/miaoerwu/crawler/log"
 )
 
 func main() {
-	urls := []string{"http://127.0.0.1:8888", "http://127.0.0.1:8889"}
-	p, err := proxy.NewRoundRobinSwitcher(urls...)
-	if err != nil {
-		fmt.Println("RoundRobinProxySwitcher failed")
+	plugin, closer := log.NewFilePlugin("./log.txt", zapcore.InfoLevel)
+	defer func(closer io.Closer) {
+		_ = closer.Close()
+	}(closer)
+	logger := log.NewLogger(plugin)
+	logger.Info("log init end")
 
-		return
-	}
+	//urls := []string{"http://127.0.0.1:8888", "http://127.0.0.1:8889"}
+	//p, err := proxy.NewRoundRobinSwitcher(urls...)
+	//if err != nil {
+	//	logger.Error("RoundRobinProxySwitcher failed")
+	//
+	//	return
+	//}
 
 	url := "https://google.com"
 	fetch := collect.BrowserFetch{
 		Timeout: 2000 * time.Millisecond,
-		Proxy:   p,
+		//Proxy:   p,
 	}
 	body, err := fetch.Get(url)
 	if err != nil {
-		fmt.Println("read body failed:", err)
+		logger.Error("read body failed:", zap.Error(err))
 
 		return
 	}
 
-	fmt.Println(string(body))
-
-	fmt.Println()
-	fmt.Println("------------------------------------------")
-	fmt.Println()
+	logger.Info(string(body))
 
 	ctx, cancelFunc := chromedp.NewContext(context.Background())
 	defer cancelFunc()
@@ -52,10 +57,10 @@ func main() {
 		chromedp.Value("#example-After textarea", &example),
 	)
 	if err != nil {
-		fmt.Println("read body failed:", err)
+		logger.Error("read body failed:", zap.Error(err))
 
 		return
 	}
 
-	fmt.Println(example)
+	logger.Info(example)
 }

@@ -16,16 +16,16 @@ import (
 )
 
 type Fetcher interface {
-	Get(url string) ([]byte, error)
+	Get(req *Request) ([]byte, error)
 }
 
 type BaseFetch struct {
 }
 
-func (BaseFetch) Get(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+func (BaseFetch) Get(req *Request) ([]byte, error) {
+	resp, err := http.Get(req.Url)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -33,6 +33,8 @@ func (BaseFetch) Get(url string) ([]byte, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Error status code: %v\n", resp.StatusCode)
+
+		return nil, err
 	}
 
 	bodyReader := bufio.NewReader(resp.Body)
@@ -47,7 +49,7 @@ type BrowserFetch struct {
 	Proxy   proxy.Func
 }
 
-func (b BrowserFetch) Get(url string) ([]byte, error) {
+func (b BrowserFetch) Get(request *Request) ([]byte, error) {
 	client := &http.Client{
 		Timeout: b.Timeout,
 	}
@@ -57,9 +59,13 @@ func (b BrowserFetch) Get(url string) ([]byte, error) {
 		client.Transport = transport
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", request.Url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http.NewRequest error: %v", err)
+	}
+
+	if request.Cookies != "" {
+		req.Header.Set("Cookie", request.Cookies)
 	}
 
 	req.Header.Set("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36")
